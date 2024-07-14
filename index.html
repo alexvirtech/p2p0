@@ -47,6 +47,26 @@
             let conn = null
             let call = null
 
+            const peerConfig = {
+                //host: 'wss2.mtw-testnet.com',
+                //path: '/peerjs/myapp',
+                config: {
+                    iceServers: [
+                        { urls: "stun:stun.l.google.com:19302" },
+                        {
+                            urls: "turn:standard.relay.metered.ca:443",
+                            username: "13bc22c6d7ffd548f62b9557",
+                            credential: "vAOlbk9/uyITlI1m",
+                        },
+                        {
+                            urls: "turns:standard.relay.metered.ca:443?transport=tcp",
+                            username: "13bc22c6d7ffd548f62b9557",
+                            credential: "vAOlbk9/uyITlI1m",
+                        },
+                    ],
+                },
+            }
+
             const init = async () => {
                 const myVideo = document.getElementById("myVideo")
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
@@ -75,7 +95,7 @@
                     })
                 })
 
-                conn = peer.connect(recId)
+                conn = peer.connect(recId,peerConfig)
                 conn.on("open", () => {
                     console.log("Connected to: " + recId)
                     document.getElementById("myId").disabled = true

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Communicator</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    </head>
+    <body>
+        <div class="max-w-60 mx-auto">
+            <h1 class="text-2xl flex justify-center py-4">Communicator</h1>
+
+                <form id="connectForm" onsubmit="connect(event)">
+                    <div class="flex justify-center gap-2">
+                    <div>
+                        <div>My Nickname</div>
+                        <input type="text" class="border border-gray-400 p-2 rounded" id="myId" />
+                    </div>
+
+                    <div>
+                        <div>Recipient</div>
+                        <input type="text" class="border border-gray-400 p-2 rounded" id="recId" />
+                    </div>
+                    <div>
+                        <div>&nbsp;</div>
+                        <button
+                            type="submit"
+                            class="h-auto bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                            id="connectButton"
+                        >
+                            Connect
+                        </button>
+                    </div>
+                    </div>
+                </div>
+                </form>
+            
+            <div class="flex justify-center gap-2 py-4">
+                <video autoplay muted id="myVideo" class="max-w-60"></video>
+                <video autoplay id="repVideo" class="max-w-60"></video>
+            </div>
+        </div>
+
+        <script>
+            let peer = null
+            let conn = null
+            let call = null
+
+            const init = async () => {
+                const myVideo = document.getElementById("myVideo")
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+                myVideo.srcObject = stream
+                return stream
+            }
+
+            const connect = async (e) => {
+                e.preventDefault()
+                const myId = document.getElementById("myId").value
+                const recId = document.getElementById("recId").value
+                console.log(myId, recId)
+
+                peer = new Peer(myId)
+                const myStream = await init()
+
+                peer.on("open", (id) => {
+                    console.log("My peer ID is: " + id)
+                })
+
+                peer.on("call", (incomingCall) => {
+                    incomingCall.answer(myStream)
+                    incomingCall.on("stream", (remoteStream) => {
+                        const repVideo = document.getElementById("repVideo")
+                        repVideo.srcObject = remoteStream
+                    })
+                })
+
+                conn = peer.connect(recId)
+                conn.on("open", () => {
+                    console.log("Connected to: " + recId)
+                    document.getElementById("myId").disabled = true
+                    document.getElementById("recId").disabled = true
+                    document.getElementById("connectButton").innerText = "Disconnect"
+                    document.getElementById("connectButton").onclick = disconnect
+
+                    call = peer.call(recId, myStream)
+                    call.on("stream", (remoteStream) => {
+                        const repVideo = document.getElementById("repVideo")
+                        repVideo.srcObject = remoteStream
+                    })
+                })
+            }
+
+            const disconnect = () => {
+                if (call) call.close()
+                if (conn) conn.close()
+                if (peer) peer.destroy()
+
+                document.getElementById("myId").disabled = false
+                document.getElementById("recId").disabled = false
+                document.getElementById("connectButton").innerText = "Connect"
+                document.getElementById("connectButton").onclick = (e) => connect(e)
+
+                document.getElementById("myVideo").srcObject = null
+                document.getElementById("repVideo").srcObject = null
+
+                init()
+            }
+
+            window.onload = init
+        </script>
+    </body>
+</html>

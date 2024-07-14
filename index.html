@@ -6,66 +6,66 @@
         <title>Communicator</title>
         <script src="https://cdn.tailwindcss.com"></script>
         <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+        <script src="config.js"></script>
     </head>
     <body>
-        <div class="max-w-60 mx-auto">
-            <h1 class="text-2xl flex justify-center py-4">Communicator</h1>
-
-                <form id="connectForm" onsubmit="connect(event)">
-                    <div class="flex justify-center gap-2">
-                    <div>
-                        <div>My Nickname</div>
-                        <input type="text" class="border border-gray-400 p-2 rounded" id="myId" />
+        <div class="max-w-[500px] mx-auto">
+            <div>
+                <h1 class="text-2xl flex justify-center py-4">Communicator</h1>
+                    <form id="connectForm" onsubmit="connect(event)">
+                        <div class="flex justify-center gap-2 px-1">
+                        <div>
+                            <div>My Nickname</div>
+                            <input type="text" class="border border-gray-400 p-2 rounded" id="myId" />
+                        </div>
+    
+                        <div>
+                            <div>Recipient</div>
+                            <input type="text" class="border border-gray-400 p-2 rounded" id="recId" />
+                        </div>
+                        <div>
+                            <div>&nbsp;</div>
+                            <button
+                                type="submit"
+                                class="h-auto bg-blue-500 hover:bg-blue-700 text-white font-bold py-[9px] px-4 rounded"
+                                id="connectButton"
+                            >
+                                Connect
+                            </button>
+                        </div>
+                        </div>
                     </div>
-
-                    <div>
-                        <div>Recipient</div>
-                        <input type="text" class="border border-gray-400 p-2 rounded" id="recId" />
-                    </div>
-                    <div>
-                        <div>&nbsp;</div>
-                        <button
-                            type="submit"
-                            class="h-auto bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-                            id="connectButton"
-                        >
-                            Connect
-                        </button>
-                    </div>
-                    </div>
+                    </form>
+                
+                <div class="flex justify-center gap-2 py-4 px-1">
+                    <video autoplay muted id="myVideo" class="max-w-[50%] border border-gray-400 p-2 rounded"></video>
+                    <video autoplay id="repVideo" class="max-w-[50%] border border-gray-400 p-2 rounded"></video>
                 </div>
-                </form>
-            
-            <div class="flex justify-center gap-2 py-4">
-                <video autoplay muted id="myVideo" class="max-w-60"></video>
-                <video autoplay id="repVideo" class="max-w-60"></video>
+                
+                <div class="flex flex-col w-full">
+                    <form onsubmit="send(event)">
+                        <div class="grow border border-gray-400 w-full min-h-60 mb-4 rounded">for chat messages</div>
+                        <div class="flex justify-between gap-2">
+                            <input type="text" class="border border-gray-400 p-2 rounded grow" id="chatMessage" />
+                            <button
+                                    type="submit"
+                                    class="h-auto bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                                    id="sendButton"
+                                >
+                                    Send
+                                </button>
+                        </div>
+                    </form>                
+                </div>
+                
             </div>
+            <div id="statusBar" class="text-center">not connected</div>
         </div>
-
+   
         <script>
             let peer = null
             let conn = null
-            let call = null
-
-            const peerConfig = {
-                //host: 'wss2.mtw-testnet.com',
-                //path: '/peerjs/myapp',
-                config: {
-                    iceServers: [
-                        { urls: "stun:stun.l.google.com:19302" },
-                        {
-                            urls: "turn:standard.relay.metered.ca:443",
-                            username: "13bc22c6d7ffd548f62b9557",
-                            credential: "vAOlbk9/uyITlI1m",
-                        },
-                        {
-                            urls: "turns:standard.relay.metered.ca:443?transport=tcp",
-                            username: "13bc22c6d7ffd548f62b9557",
-                            credential: "vAOlbk9/uyITlI1m",
-                        },
-                    ],
-                },
-            }
+            let call = null            
 
             const init = async () => {
                 const myVideo = document.getElementById("myVideo")
@@ -125,6 +125,12 @@
                 document.getElementById("repVideo").srcObject = null
 
                 init()
+            }
+
+            const send = (e) => {
+                e.preventDefault()
+                const chatMessage = document.getElementById("chatMessage").value
+                conn.send(chatMessage)
             }
 
             window.onload = init

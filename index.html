@@ -12,125 +12,164 @@
         <div class="max-w-[500px] mx-auto">
             <div>
                 <h1 class="text-2xl flex justify-center py-4">Communicator</h1>
-                    <form id="connectForm" onsubmit="connect(event)">
-                        <div class="flex justify-center gap-2 px-1">
-                        <div>
-                            <div>My Nickname</div>
-                            <input type="text" class="border border-gray-400 p-2 rounded" id="myId" />
-                        </div>
-    
-                        <div>
-                            <div>Recipient</div>
-                            <input type="text" class="border border-gray-400 p-2 rounded" id="recId" />
-                        </div>
-                        <div>
-                            <div>&nbsp;</div>
-                            <button
-                                type="submit"
-                                class="h-auto bg-blue-500 hover:bg-blue-700 text-white font-bold py-[9px] px-4 rounded"
-                                id="connectButton"
-                            >
-                                Connect
-                            </button>
-                        </div>
-                        </div>
+                <form id="connectForm" onsubmit="connect(event)">
+                    <div class="w-full">
+                        <div>My Nickname</div>
+                        <input type="text" class="border border-gray-400 p-2 rounded w-full" 
+                         onclick="getId(event)" id="myId" readonly />
                     </div>
-                    </form>
-                
+
+                    <div class="w-full">
+                        <div>Recipient</div>
+                        <input type="text" class="border border-gray-400 p-2 rounded w-full" id="recId" />
+                    </div>
+                    <div class="py-2">
+                        <button
+                            type="submit"
+                            class="h-auto bg-blue-500 hover:bg-blue-700 text-white font-bold py-[9px] px-4 rounded"
+                            id="connectButton"
+                        >
+                            Connect
+                        </button>
+                    </div>
+                </form>
+
                 <div class="flex justify-center gap-2 py-4 px-1">
                     <video autoplay muted id="myVideo" class="max-w-[50%] border border-gray-400 p-2 rounded"></video>
                     <video autoplay id="repVideo" class="max-w-[50%] border border-gray-400 p-2 rounded"></video>
                 </div>
-                
-                <div class="flex flex-col w-full">
+
+                <div class="flex flex-col w-full" id="messages" style="display: none">
                     <form onsubmit="send(event)">
                         <div class="grow border border-gray-400 w-full min-h-60 mb-4 rounded">for chat messages</div>
                         <div class="flex justify-between gap-2">
                             <input type="text" class="border border-gray-400 p-2 rounded grow" id="chatMessage" />
                             <button
-                                    type="submit"
-                                    class="h-auto bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-                                    id="sendButton"
-                                >
-                                    Send
-                                </button>
+                                type="submit"
+                                class="h-auto bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                                id="sendButton"
+                            >
+                                Send
+                            </button>
                         </div>
-                    </form>                
+                    </form>
                 </div>
-                
             </div>
             <div id="statusBar" class="text-center">not connected</div>
         </div>
-   
+
         <script>
             let peer = null
             let conn = null
-            let call = null            
+            let call = null
+            let localStream = null
+            let $messages = document.getElementById("messages")
+            let $input = document.getElementById("chatMessage")
 
+            // Initialize my video stream and create a new Peer with a generated ID
             const init = async () => {
-                const myVideo = document.getElementById("myVideo")
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-                myVideo.srcObject = stream
-                return stream
+                try {
+                    const myVideo = document.getElementById("myVideo")
+                    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+                    myVideo.srcObject = localStream
+
+                    peer = new Peer()
+                    peer.on("open", (id) => {
+                        document.getElementById("myId").value = id
+                        console.log("Peer ID:", id)
+                    })
+
+                    // Handle incoming calls
+                    peer.on("call", (incomingCall) => {
+                        console.log("Receiving call...")
+                        incomingCall.answer(localStream)
+                        incomingCall.on("stream", (remoteStream) => {
+                            const repVideo = document.getElementById("repVideo")
+                            repVideo.srcObject = remoteStream
+                        })
+                    })
+
+                    // Handle connection events
+                    peer.on("connection", (connection) => {
+                        conn = connection
+                        conn.on("data", (data) => {
+                            console.log("Received:", data)
+                            const chatItem = `<div class="text-right pl-8">${data}</div>`
+                            $messages.insertAdjacentHTML("beforeend", chatItem)
+                        })
+                        conn.on("open", () => {
+                            console.log("Connection opened")
+                        })
+                    })
+                } catch (error) {
+                    console.error("Error accessing media devices.", error)
+                }
             }
 
+            // Connect to the recipient peer
             const connect = async (e) => {
                 e.preventDefault()
-                const myId = document.getElementById("myId").value
                 const recId = document.getElementById("recId").value
-                console.log(myId, recId)
 
-                peer = new Peer(myId)
-                const myStream = await init()
+                if (!peer) {
+                    console.error("Peer not initialized.")
+                    return
+                }
 
-                peer.on("open", (id) => {
-                    console.log("My peer ID is: " + id)
-                })
-
-                peer.on("call", (incomingCall) => {
-                    incomingCall.answer(myStream)
-                    incomingCall.on("stream", (remoteStream) => {
-                        const repVideo = document.getElementById("repVideo")
-                        repVideo.srcObject = remoteStream
-                    })
-                })
-
-                conn = peer.connect(recId,peerConfig)
+                conn = peer.connect(recId)
                 conn.on("open", () => {
-                    console.log("Connected to: " + recId)
-                    document.getElementById("myId").disabled = true
-                    document.getElementById("recId").disabled = true
+                    console.log("Connected to:", recId)
+                    document.getElementById("recId").readOnly = true
                     document.getElementById("connectButton").innerText = "Disconnect"
                     document.getElementById("connectButton").onclick = disconnect
+                    document.getElementById("messages").style.display = "block"
+                    document.getElementById("statusBar").innerText = "connected"
 
-                    call = peer.call(recId, myStream)
+                    // Make a call to the recipient
+                    call = peer.call(recId, localStream)
                     call.on("stream", (remoteStream) => {
                         const repVideo = document.getElementById("repVideo")
                         repVideo.srcObject = remoteStream
                     })
                 })
+
+                conn.on("error", (err) => {
+                    console.error("Connection error:", err)
+                })
             }
 
+            // Disconnect the peer connection
             const disconnect = () => {
                 if (call) call.close()
                 if (conn) conn.close()
                 if (peer) peer.destroy()
 
-                document.getElementById("myId").disabled = false
-                document.getElementById("recId").disabled = false
+                document.getElementById("recId").readOnly = false
                 document.getElementById("connectButton").innerText = "Connect"
                 document.getElementById("connectButton").onclick = (e) => connect(e)
-
+                document.getElementById("messages").style.display = "none"
+                document.getElementById("statusBar").innerText = "not connected"
                 document.getElementById("myVideo").srcObject = null
                 document.getElementById("repVideo").srcObject = null
 
                 init()
             }
 
+            // Send chat messages
             const send = (e) => {
                 e.preventDefault()
-                const chatMessage = document.getElementById("chatMessage").value
-                conn.send(chatMessage)
+                const chatMessage = $input.value
+                if (conn && conn.open) {
+                    conn.send(chatMessage)
+                    $input.value = ""
+                    console.log("Sent:", chatMessage)
+                } else {
+                    console.log("Connection is not open.")
+                }
+            }
+
+            const getId = (e) => {
+                e.target.select()
             }
 
             window.onload = init

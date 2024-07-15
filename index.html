@@ -81,7 +81,7 @@
                     localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
                     myVideo.srcObject = localStream
 
-                    peer = new Peer()
+                    peer = new Peer(peerConfig1)
                     peer.on("open", (id) => {
                         document.getElementById("myId").value = id
                         console.log("Peer ID:", id)

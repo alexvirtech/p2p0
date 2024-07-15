@@ -1,6 +1,6 @@
 const peerConfig = {
-    //host: 'wss2.mtw-testnet.com',
-    //path: '/peerjs/myapp',
+    host: 'wss2.mtw-testnet.com',
+    path: '/peerjs/myapp',
     config: {
         iceServers: [
             { urls: "stun:stun.l.google.com:19302" },
